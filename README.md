@@ -19,7 +19,7 @@
 `piss` prints a banner, then reads one line at a time from a `> ` prompt. The line is split on whitespace; if the first word is a built-in (`cd`, `clear`, `exit`, `help`) the shell handles it itself, otherwise it launches the program with `subprocess.run` and waits for it to finish. No shell is involved in that call, so the first word must be a real executable on your `PATH`.
 
 > [!WARNING]
-> Pressing **Enter on an empty line crashes the shell** with `IndexError: list index out of range` ([src/main.py:62](src/main.py#L62)). Ctrl+D / end of input also exits with an `EOFError` traceback. Type `exit` to leave cleanly.
+> **Ctrl+C at the prompt exits the shell** (no confirmation). **Ctrl+D / end of input** crashes with an `EOFError` traceback, and **Ctrl+C while a program is running** crashes with a `KeyboardInterrupt` traceback ([src/main.py:40-43](src/main.py#L40-L43), [src/main.py:73-78](src/main.py#L73-L78)). Type `exit` to leave cleanly.
 
 ## ✨ Features
 
@@ -28,6 +28,7 @@
 | 🧩 **Built-ins** | `cd`, `clear`, `exit`, `help`, dispatched through the `InbuiltCmds` enum |
 | 🚀 **External commands** | Anything else runs as a child process via `subprocess.run(args)` |
 | 🧯 **Error messages** | Unknown programs print `piss: Command not found: <name>` instead of crashing |
+| ↩️ **Blank lines ignored** | Empty or whitespace-only input re-prompts |
 | 📦 **Zero runtime deps** | Standard library only (`re`, `os`, `subprocess`, `enum`) |
 | 🪟 **Single-file binary** | `main.spec` bundles it into one console executable with PyInstaller |
 
@@ -36,6 +37,7 @@
 ```mermaid
 flowchart LR
     A["input()"] --> B["read_input: split on space, tab, CR, LF, BEL"]
+    B -- "empty" --> A
     B --> C{"first word in InbuiltCmds?"}
     C -- yes --> D["handle_inbuild_cmds"]
     C -- no --> E["subprocess.run(args)"]
@@ -51,9 +53,11 @@ flowchart LR
    > [!NOTE]
    > Python 3.12+ is required (`requires-python = ">=3.12"`). The `args[0] in InbuiltCmds` check relies on string-in-enum membership, which raises `TypeError` on 3.11.
 
-2. **Install** (only installs the PyInstaller dev dependency):
+2. **Clone and install** (`uv sync` only installs the PyInstaller dev dependency):
 
    ```bash
+   git clone https://github.com/Avi-Rana-1718/piss.git
+   cd piss
    uv sync
    ```
 
@@ -117,8 +121,9 @@ uv run pyinstaller main.spec
 
 | Limitation | Cause |
 |---|---|
-| Empty line crashes | `read_input` returns `[]`, then `run_input` reads `args[0]` |
-| Ctrl+D / Ctrl+C crash | `EOFError` / `KeyboardInterrupt` from `input()` are not caught |
+| Ctrl+D crashes | `EOFError` from `input()` is not caught |
+| Ctrl+C during a running program crashes the shell | `KeyboardInterrupt` from `subprocess.run` is not caught (it subclasses `BaseException`, so `except Exception` misses it) |
+| Ctrl+C at the prompt exits instead of clearing the line | The `KeyboardInterrupt` handler around `input()` does `break` |
 | No quoting, pipes, redirects, globs, or env vars | Input is split with a regex on whitespace and passed directly to `subprocess.run` |
 | `cmd.exe` built-ins (`dir`, `cls`, `type`, ...) not found on plain Windows | No shell is spawned; they only work if a same-named executable is on `PATH` (Git for Windows ships some) |
 
