@@ -1,14 +1,6 @@
 <div align="center">
 
-<pre>
-        _
- _ __  (_) ___  ___
-| '_ \ | |/ __|/ __|
-| |_) || |\__ \\__ \
-| .__/ |_||___/|___/
-|_|
-</pre>
-
+# 🐍 piss
 **piss — Python Interactive Shell System: a small REPL shell written in pure Python.**
 
 [![Python](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
